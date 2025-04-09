@@ -3,10 +3,41 @@ from sqlalchemy.future import select
 from sqlalchemy import or_, extract
 from typing import List, Optional
 from datetime import datetime, timedelta
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from passlib.context import CryptContext
+from fastapi import HTTPException, status
 
 from . import models
 
 from . import schemas
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+async def get_user_by_email(email: str, db: AsyncSession) -> Optional[models.User]:
+    result = await db.execute(select(models.User).where(models.User.email == email))
+    return result.scalar_one_or_none()
+
+async def create_user(user_data: schemas.UserCreate, db: AsyncSession) -> models.User:
+    result = await db.execute(select(models.User).where(models.User.email == user_data.email))
+    existing_user = result.scalar_one_or_none()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User with this email already exists."
+        )
+
+    hashed_password = pwd_context.hash(user_data.password)
+    new_user = models.User(
+        email=user_data.email,
+        password=hashed_password
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return new_user
 
 # Create
 async def create_contact(contact: schemas.ContactCreate, db: AsyncSession) -> models.Contact:
