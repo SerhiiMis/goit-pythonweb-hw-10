@@ -20,9 +20,9 @@ async def signup(user_data: schemas.UserCreate, request: Request, db: AsyncSessi
 
 
 @router.get("/verify-email")
-async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+async def verify_email(email: str, db: AsyncSession = Depends(get_db)):
     # Тут token — це email
-    user = await crud.get_user_by_email(token, db)
+    user = await crud.get_user_by_email(email, db)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
