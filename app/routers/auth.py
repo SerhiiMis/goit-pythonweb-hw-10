@@ -1,15 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .. import schemas, crud
 from ..database import get_db
 from ..auth.security import verify_password, create_access_token
+from ..services import email as email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/signup", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
-async def signup(user_data: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
-    return await crud.create_user(user_data, db)
+async def signup(user_data: schemas.UserCreate, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await crud.create_user(user_data, db)
+    email_service.send_verification_email(request, user.email)
+    return user
+
+
+@router.get("/verify-email")
+async def verify_email(token: str, db: AsyncSession = Depends(get_db)):
+    # Тут token — це email
+    user = await crud.get_user_by_email(token, db)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.is_verified = True
+    await db.commit()
+    return {"message": "Email verified successfully"}
 
 @router.post("/login")
 async def login(user: schemas.UserLogin, db: AsyncSession = Depends(get_db)):
