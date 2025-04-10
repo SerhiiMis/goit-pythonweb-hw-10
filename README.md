@@ -1,72 +1,85 @@
 # Contacts API
 
-A simple asynchronous REST API for managing contacts, built with FastAPI, SQLAlchemy, PostgreSQL, and Pydantic.
+A secure asynchronous REST API for managing personal contacts, built with FastAPI, PostgreSQL, JWT and Docker.
 
 ## Features
 
-- Create, read, update, and delete contacts
-- Search contacts by first name, last name, or email
-- Get contacts with upcoming birthdays in the next 7 days
-- Swagger and ReDoc documentation
-- Environment-based configuration using `.env`
+- JWT-based authentication and authorization
+- Only authenticated users can access their own contacts
+- Email verification via link
+- Rate limiting for the `/users/me` endpoint
+- CORS enabled for API
+- Avatar upload with Cloudinary integration
+- Docker Compose support for quick startup
 
 ## Technologies
 
 - Python 3.12+
 - FastAPI
 - SQLAlchemy (Async)
-- PostgreSQL
-- asyncpg
+- PostgreSQL + asyncpg
+- Alembic
+- Docker & Docker Compose
 - Pydantic v2
 - Uvicorn
-- python-dotenv
+- python-jose (JWT)
+- Cloudinary SDK
+- SlowAPI (rate limit)
 
 ## Getting Started
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/SerhiiMis/goit-pythonweb-hw-08.git
-cd goit-pythonweb-hw-08
+git clone https://github.com/SerhiiMis/goit-pythonweb-hw-10.git
+cd goit-pythonweb-hw-10
 ```
 
 ### 2. Create and configure `.env`
 
-Create a `.env` file in the root directory based on `.example.env`:
-
 ```env
-DATABASE_URL=postgresql+asyncpg://postgres:your_password@localhost:5432/contacts_db
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/contacts_db
+SECRET_KEY=your_secret_key
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
-Make sure PostgreSQL is running and the `contacts_db` database is created.
-
-### 3. Install dependencies
+### 3. Run with Docker
 
 ```bash
-pip install -r requirements.txt
+docker compose up --build
 ```
 
-Or manually:
+App will be available at:  
+📄 Swagger UI → [http://localhost:8000/docs](http://localhost:8000/docs)
 
-```bash
-pip install fastapi sqlalchemy asyncpg psycopg2-binary uvicorn python-dotenv pydantic[email]
-```
+## API Overview
 
-### 4. Run the application
+### 🔐 Authentication
 
-```bash
-createdb contacts_db
-uvicorn app.main:app --reload
-```
+- `POST /auth/signup` — Register user
+- `POST /auth/login` — Login and receive JWT
+- `GET /auth/verify-email?email=...` — Verify user email
 
-### 5. Open API docs
+### 👤 Users
 
-- Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+- `GET /users/me` — Get current user info (rate-limited)
+- `POST /users/avatar` — Upload user avatar to Cloudinary
 
----
+### 📇 Contacts (authorized access only)
+
+- `POST /contacts/` — Create new contact
+- `GET /contacts/` — Get all user's contacts
+- `GET /contacts/{id}` — Get contact by ID
+- `PUT /contacts/{id}` — Update contact
+- `DELETE /contacts/{id}` — Delete contact
+- `GET /contacts/search/?query=...` — Search contacts
+- `GET /contacts/upcoming-birthdays/` — Birthdays in next 7 days
 
 ## Environment Files
 
-- `.env` — used to store environment variables (e.g., DB credentials). **Do not commit this file.**
-- `.example.env` — sample file to show required environment variables.
+- `.env` — used for environment variables (not committed)
+- `.example.env` — shows required env variables
+- `docker-compose.yml` — builds API and DB containers
